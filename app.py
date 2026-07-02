@@ -61,6 +61,7 @@ KB_FILES = {
     "company_values": "company-values.md",
     "communication": "communication-classics.md",
     "labor_law": "labor-law.md",
+    "embodied_ai": "embodied-ai.md",
 }
 
 def load_knowledge_base() -> dict[str, str]:
@@ -144,7 +145,7 @@ def build_analysis_system_prompt(kb: dict[str, str]) -> str:
         kb_core = condensed_path.read_text(encoding="utf-8")
     else:
         # 回退到完整模块
-        kb_core = f"""## 语言指纹\n{kb.get('language', '')}\n## 行为模式\n{kb.get('behavior', '')}\n## 风险信号\n{kb.get('risk', '')}\n## 情景逻辑\n{kb.get('situational', '')}\n## 公司素质\n{kb.get('company_values', '')}\n## 沟通经典\n{kb.get('communication', '')}\n## 劳动法\n{kb.get('labor_law', '')}"""
+        kb_core = f"""## 语言指纹\n{kb.get('language', '')}\n## 行为模式\n{kb.get('behavior', '')}\n## 风险信号\n{kb.get('risk', '')}\n## 情景逻辑\n{kb.get('situational', '')}\n## 公司素质\n{kb.get('company_values', '')}\n## 沟通经典\n{kb.get('communication', '')}\n## 劳动法\n{kb.get('labor_law', '')}\n## 具身智能\n{kb.get('embodied_ai', '')}"""
 
     return f"""你是「洞见」(DongJian) 人才风险分析专家。你基于心理学文献训练，专长从对话记录中提取语言指纹和行为模式，推断候选人的动机、性格特质、潜在风险。
 
