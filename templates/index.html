@@ -342,6 +342,24 @@
     </div>
 
     <div class="result" id="result-analyze"></div>
+
+    <!-- 展开详细分析 -->
+    <div class="toggle-area" id="toggle-analyze" style="display:none;">
+      <button class="btn btn-secondary" onclick="toggleDetails()" id="btn-toggle-details">
+        📋 查看完整分析过程
+      </button>
+    </div>
+    <div class="result" id="result-analyze-details" style="display:none;"></div>
+
+    <!-- 交互反馈 -->
+    <div class="feedback-area" id="chat-analyze" style="display:none;">
+      <label>💬 交互反馈 <span class="sub">对分析有疑问？输入反馈让洞见进一步深挖</span></label>
+      <textarea id="analyze-feedback" placeholder="如: 为什么判断他离职风险高？我觉得还应该考虑..."></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runAnalyzeChat()" id="btn-analyze-chat">提交反馈</button>
+      </div>
+      <div id="chat-history-analyze"></div>
+    </div>
   </div>
 
   <!-- ========== 谈判策略 Tab ========== -->
@@ -396,6 +414,7 @@
 // ── 状态 ──
 let currentTab = 'analyze';
 let negotiateState = { strategy: '', feedbacks: [], round: 0 };
+let analyzeState = { summary: '', details: '', conversation: '', report: '' };
 
 // ── Tab 切换 ──
 function switchTab(tab) {
@@ -433,11 +452,19 @@ async function runAnalyze() {
   const btn = document.getElementById('btn-analyze');
   const loader = document.getElementById('loader-analyze');
   const result = document.getElementById('result-analyze');
+  const toggleArea = document.getElementById('toggle-analyze');
+  const details = document.getElementById('result-analyze-details');
+  const chat = document.getElementById('chat-analyze');
 
   btn.disabled = true;
   loader.classList.add('visible');
   result.classList.add('visible');
   result.textContent = '';
+  details.classList.remove('visible');
+  details.textContent = '';
+  toggleArea.style.display = 'none';
+  chat.style.display = 'none';
+  analyzeState = { summary: '', details: '', conversation: text, report: '' };
 
   try {
     const r = await fetch('/api/analyze', {
@@ -450,6 +477,8 @@ async function runAnalyze() {
       throw new Error(`HTTP ${r.status}: ${errText.substring(0, 200)}`);
     }
     await streamResponse(r, result);
+    // 拆分摘要和详情
+    splitResult(result.textContent);
   } catch(e) {
     result.textContent = '请求失败: ' + e.message;
   } finally {
@@ -458,11 +487,85 @@ async function runAnalyze() {
   }
 }
 
+function splitResult(fullText) {
+  const idx = fullText.indexOf('[DETAILS]');
+  if (idx > 0) {
+    analyzeState.summary = fullText.substring(0, idx).trim();
+    analyzeState.details = fullText.substring(idx + 9).trim();
+    analyzeState.report = fullText;
+    // 摘要已显示在 result-analyze 中，替换为纯摘要
+    document.getElementById('result-analyze').textContent = analyzeState.summary;
+    document.getElementById('result-analyze-details').textContent = analyzeState.details;
+    document.getElementById('toggle-analyze').style.display = 'block';
+    document.getElementById('chat-analyze').style.display = 'block';
+    document.getElementById('btn-toggle-details').textContent = '📋 查看完整分析过程';
+  } else {
+    analyzeState.report = fullText;
+    document.getElementById('chat-analyze').style.display = 'block';
+  }
+}
+
+function toggleDetails() {
+  const details = document.getElementById('result-analyze-details');
+  const btn = document.getElementById('btn-toggle-details');
+  if (details.classList.contains('visible')) {
+    details.classList.remove('visible');
+    btn.textContent = '📋 查看完整分析过程';
+  } else {
+    details.classList.add('visible');
+    btn.textContent = '📋 收起分析过程';
+  }
+}
+
 function clearAnalyze() {
   document.getElementById('analyze-text').value = '';
   document.getElementById('analyze-subject').value = '';
   document.getElementById('result-analyze').classList.remove('visible');
   document.getElementById('result-analyze').textContent = '';
+  document.getElementById('result-analyze-details').classList.remove('visible');
+  document.getElementById('result-analyze-details').textContent = '';
+  document.getElementById('toggle-analyze').style.display = 'none';
+  document.getElementById('chat-analyze').style.display = 'none';
+  document.getElementById('analyze-feedback').value = '';
+  document.getElementById('chat-history-analyze').innerHTML = '';
+  analyzeState = { summary: '', details: '', conversation: '', report: '' };
+}
+
+// ── 分析交互反馈 ──
+async function runAnalyzeChat() {
+  const feedback = document.getElementById('analyze-feedback').value.trim();
+  if (!feedback) { alert('请输入反馈'); return; }
+  if (!analyzeState.report) { alert('请先完成分析'); return; }
+
+  const btn = document.getElementById('btn-analyze-chat');
+  const history = document.getElementById('chat-history-analyze');
+  btn.disabled = true;
+
+  // 显示用户问题
+  history.innerHTML += `<div class=\"round\" style=\"color:var(--accent);\"><strong>你:</strong> ${feedback}</div>`;
+
+  try {
+    const r = await fetch('/api/analyze/chat', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        report: analyzeState.report,
+        question: feedback,
+        conversation: analyzeState.conversation,
+      }),
+    });
+    if (!r.ok) {
+      const errText = await r.text();
+      throw new Error(`HTTP ${r.status}: ${errText.substring(0, 200)}`);
+    }
+    const resp = await r.text();
+    history.innerHTML += `<div class=\"round\"><strong>洞见:</strong> ${resp}</div>`;
+    document.getElementById('analyze-feedback').value = '';
+  } catch(e) {
+    history.innerHTML += `<div class=\"round\" style=\"color:var(--red);\">错误: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // ── 谈判策略 ──
