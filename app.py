@@ -443,6 +443,7 @@ def analyze_chat():
     report = data.get("report", "").strip()
     question = data.get("question", "").strip()
     conversation = data.get("conversation", "").strip()
+    history = data.get("history", [])
 
     if not question:
         return jsonify({"error": "请提供反馈问题"}), 400
@@ -451,18 +452,29 @@ def analyze_chat():
     condensed_path = KNOWLEDGE_BASE / "kb-condensed.md"
     kb_core = condensed_path.read_text(encoding="utf-8") if condensed_path.exists() else ""
 
-    system_prompt = f"""你是「洞见」交互分析顾问。用户已经看过一份候选人的分析报告，现在提出了具体的问题或质疑。请根据用户的问题，结合原始对话和分析报告，给出深入的回答。
+    # 构建对话历史
+    history_text = ""
+    if history:
+        history_text = "\n## 对话历史\n"
+        for h in history[-6:]:  # 最近6轮
+            role = "用户" if h.get("role") == "user" else "洞见"
+            history_text += f"\n{role}: {h.get('content', '')[:300]}"
+
+    system_prompt = f"""你是「洞见」交互分析顾问。用户已经看过一份候选人的分析报告，现在正在和你进行多轮对话来深入探讨和矫正分析。
+{history_text}
 
 ## 知识库
 {kb_core}
 
 ## 要求
-- 直接回答用户问题，不要重复完整报告
-- 如果用户质疑某个判断，给出具体证据或不修正
-- 如果用户要求深挖某个维度，聚焦该维度展开
+- 这是一个持续对话，你的回答应该基于之前已经讨论过的内容
+- 直接回答用户问题，不需要重复完整报告
+- 如果用户指出某个判断有偏差，承认并给出修正后的分析，明确说明「原判断: ... → 修正: ...」
+- 如果用户要求深挖某个维度，聚焦该维度展开详细分析
+- 如果用户提供了新信息，结合新信息调整结论
 - 简洁有力，300字以内"""
 
-    user_prompt = f"## 原始对话\n{conversation}\n\n## 分析报告\n{report}\n\n## 用户问题\n{question}"
+    user_prompt = f"## 原始对话\n{conversation}\n\n## 分析报告\n{report}\n\n## 用户最新问题\n{question}"
 
     return Response(
         stream_with_context(call_llm_stream(system_prompt, user_prompt)),

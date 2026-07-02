@@ -279,6 +279,42 @@
     padding: 6px 10px;
     margin: 4px 0;
   }
+
+  /* chat bubbles */
+  .chat-msg {
+    margin: 8px 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+    max-width: 90%;
+  }
+  .chat-msg strong {
+    display: block;
+    font-size: 11px;
+    margin-bottom: 4px;
+    opacity: 0.7;
+  }
+  .chat-msg p { margin: 0; white-space: pre-wrap; }
+  .user-msg {
+    background: var(--accent);
+    color: #fff;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+  }
+  .ai-msg {
+    background: var(--panel2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  #chat-history-analyze {
+    max-height: 50vh;
+    overflow-y: auto;
+    margin: 8px 0;
+    padding: 4px;
+  }
+  #chat-history-analyze:empty { display: none; }
   .feedback-history .round strong { color: var(--accent2); }
 
   /* responsive */
@@ -414,7 +450,7 @@
 // ── 状态 ──
 let currentTab = 'analyze';
 let negotiateState = { strategy: '', feedbacks: [], round: 0 };
-let analyzeState = { summary: '', details: '', conversation: '', report: '' };
+let analyzeState = { summary: '', details: '', conversation: '', report: '', chatHistory: [] };
 
 // ── Tab 切换 ──
 function switchTab(tab) {
@@ -464,7 +500,7 @@ async function runAnalyze() {
   details.textContent = '';
   toggleArea.style.display = 'none';
   chat.style.display = 'none';
-  analyzeState = { summary: '', details: '', conversation: text, report: '' };
+  analyzeState = { summary: '', details: '', conversation: text, report: '', chatHistory: [] };
 
   try {
     const r = await fetch('/api/analyze', {
@@ -528,21 +564,24 @@ function clearAnalyze() {
   document.getElementById('chat-analyze').style.display = 'none';
   document.getElementById('analyze-feedback').value = '';
   document.getElementById('chat-history-analyze').innerHTML = '';
-  analyzeState = { summary: '', details: '', conversation: '', report: '' };
+  analyzeState = { summary: '', details: '', conversation: '', report: '', chatHistory: [] };
 }
 
-// ── 分析交互反馈 ──
+// ── 分析交互反馈（多轮对话）──
 async function runAnalyzeChat() {
   const feedback = document.getElementById('analyze-feedback').value.trim();
-  if (!feedback) { alert('请输入反馈'); return; }
+  if (!feedback) { alert('请输入你的反馈或问题'); return; }
   if (!analyzeState.report) { alert('请先完成分析'); return; }
 
   const btn = document.getElementById('btn-analyze-chat');
   const history = document.getElementById('chat-history-analyze');
   btn.disabled = true;
 
-  // 显示用户问题
-  history.innerHTML += `<div class=\"round\" style=\"color:var(--accent);\"><strong>你:</strong> ${feedback}</div>`;
+  // 保存用户消息
+  analyzeState.chatHistory.push({ role: 'user', content: feedback });
+
+  // 显示用户消息
+  history.innerHTML += `<div class=\"chat-msg user-msg\"><strong>你</strong><p>${feedback}</p></div>`;
 
   try {
     const r = await fetch('/api/analyze/chat', {
@@ -552,6 +591,7 @@ async function runAnalyzeChat() {
         report: analyzeState.report,
         question: feedback,
         conversation: analyzeState.conversation,
+        history: analyzeState.chatHistory.slice(0, -1), // previous messages for context
       }),
     });
     if (!r.ok) {
@@ -559,10 +599,13 @@ async function runAnalyzeChat() {
       throw new Error(`HTTP ${r.status}: ${errText.substring(0, 200)}`);
     }
     const resp = await r.text();
-    history.innerHTML += `<div class=\"round\"><strong>洞见:</strong> ${resp}</div>`;
+    // 保存助手回复
+    analyzeState.chatHistory.push({ role: 'assistant', content: resp });
+    history.innerHTML += `<div class=\"chat-msg ai-msg\"><strong>洞见</strong><p>${resp}</p></div>`;
     document.getElementById('analyze-feedback').value = '';
+    history.scrollTop = history.scrollHeight;
   } catch(e) {
-    history.innerHTML += `<div class=\"round\" style=\"color:var(--red);\">错误: ${e.message}</div>`;
+    history.innerHTML += `<div class=\"chat-msg\" style=\"color:var(--red);\"><strong>错误</strong><p>${e.message}</p></div>`;
   } finally {
     btn.disabled = false;
   }
