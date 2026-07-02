@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.env
+ngrok
+daemon.py
+start.sh
+cf-tunnel.py
+dongjian-feishu*

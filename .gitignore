@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+.hermes/
+ngrok
+daemon.py
+start.sh
+cf-tunnel.py
+dongjian-feishu*
+*.zip
+.DS_Store

@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#0f1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="洞见">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<title>洞见 DongJian — 人才风险分析</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #1a1d27;
+    --panel2: #222533;
+    --border: #2a2d3a;
+    --text: #e1e4ed;
+    --text2: #8b8fa3;
+    --accent: #6c8cff;
+    --accent2: #45d9b5;
+    --red: #ff5e7a;
+    --yellow: #f0c060;
+    --green: #45d9b5;
+    --radius: 10px;
+    --shadow: 0 2px 12px rgba(0,0,0,.3);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* header */
+  .header {
+    text-align: center;
+    padding: 32px 20px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .header h1 span { color: var(--accent); }
+  .header p {
+    color: var(--text2);
+    margin-top: 6px;
+    font-size: 14px;
+  }
+
+  /* tabs */
+  .tabs {
+    display: flex;
+    gap: 0;
+    max-width: 800px;
+    margin: 24px auto 0;
+    padding: 0 16px;
+  }
+  .tab-btn {
+    flex:1;
+    padding: 12px 20px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    font-size: 15px;
+    cursor: pointer;
+    transition: all .2s;
+    text-align: center;
+  }
+  .tab-btn:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+  .tab-btn:last-child { border-radius: 0 var(--radius) var(--radius) 0; }
+  .tab-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .tab-btn:hover:not(.active) {
+    background: var(--panel2);
+    color: var(--text);
+  }
+
+  /* main container */
+  .container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+  }
+
+  /* input card */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .card label .sub {
+    font-weight: 400;
+    color: var(--text2);
+    font-size: 12px;
+    margin-left: 6px;
+  }
+  .card textarea, .card input[type=text] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 12px;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color .2s;
+  }
+  .card textarea:focus, .card input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .card textarea {
+    min-height: 180px;
+  }
+  .card input[type=text] {
+    margin-bottom: 10px;
+  }
+
+  /* buttons */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { opacity: .85; }
+  .btn-primary:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+  .btn-secondary {
+    background: var(--panel2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { background: var(--border); }
+
+  /* result area */
+  .result {
+    display: none;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-top: 16px;
+    white-space: pre-wrap;
+    font-family: "SF Mono", "Cascadia Code", "PingFang SC", monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+    overflow-x: auto;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  .result.visible { display: block; }
+
+  /* loading */
+  .loader {
+    display: none;
+    text-align: center;
+    padding: 40px;
+    color: var(--text2);
+  }
+  .loader.visible { display: block; }
+  .spinner {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin-bottom: 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* status bar */
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 12px;
+    color: var(--text2);
+    margin-bottom: 16px;
+  }
+  .status .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .dot.green { background: var(--green); }
+  .dot.red { background: var(--red); }
+  .dot.yellow { background: var(--yellow); }
+
+  /* tip */
+  .tip {
+    background: var(--panel2);
+    border-left: 3px solid var(--accent);
+    padding: 12px 16px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 16px;
+  }
+
+  /* feedback area */
+  .feedback-area {
+    display: none;
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 12px;
+  }
+  .feedback-area.visible { display: block; }
+  .feedback-area textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 10px;
+    font-family: inherit;
+    resize: vertical;
+    min-height: 70px;
+    margin-top: 6px;
+  }
+  .feedback-area textarea:focus { outline: none; border-color: var(--accent2); }
+  .feedback-history {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text2);
+    border-top: 1px solid var(--border);
+    padding-top: 8px;
+  }
+  .feedback-history .round {
+    background: var(--bg);
+    border-radius: 6px;
+    padding: 6px 10px;
+    margin: 4px 0;
+  }
+  .feedback-history .round strong { color: var(--accent2); }
+
+  /* responsive */
+  @media (max-width: 600px) {
+    .header h1 { font-size: 22px; }
+    .tabs { gap: 4px; }
+    .tab-btn { padding: 10px 12px; font-size: 14px; }
+    .container { padding: 12px 8px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>洞见 <span>DongJian</span></h1>
+  <p>基于心理学的候选人/员工风险分析工具</p>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('analyze')" id="tab-analyze">
+    💬 对话分析
+  </button>
+  <button class="tab-btn" onclick="switchTab('negotiate')" id="tab-negotiate">
+    🎯 谈判策略
+  </button>
+</div>
+
+<div class="container">
+
+  <!-- Status -->
+  <div class="status" id="status-bar">
+    <span>检查中...</span>
+  </div>
+
+  <!-- ========== 对话分析 Tab ========== -->
+  <div id="panel-analyze">
+    <div class="tip">
+      💡 粘贴候选人面试对话记录，洞见将分析其动机、人格、风险维度及公司软性素质匹配度。
+    </div>
+
+    <div class="card">
+      <label>对象代号 <span class="sub">可选，用于标识分析对象</span></label>
+      <input type="text" id="analyze-subject" placeholder="如: 候选人A / 张三 / 产品岗-001" maxlength="50">
+      <label>对话记录 <span class="sub">粘贴完整的面试或沟通对话</span></label>
+      <textarea id="analyze-text" placeholder="粘贴对话记录...
+      
+示例格式:
+面试官: 为什么想看新机会？
+候选人: 我在现在的公司做了三年，感觉成长空间有限...
+面试官: 能举个例子吗？
+候选人: ..."></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runAnalyze()" id="btn-analyze">开始分析</button>
+        <button class="btn btn-secondary" onclick="clearAnalyze()">清空</button>
+      </div>
+    </div>
+
+    <div class="loader" id="loader-analyze">
+      <div class="spinner"></div>
+      <div>正在分析对话记录，请稍候...</div>
+    </div>
+
+    <div class="result" id="result-analyze"></div>
+  </div>
+
+  <!-- ========== 谈判策略 Tab ========== -->
+  <div id="panel-negotiate" style="display:none;">
+    <div class="tip">
+      💡 输入候选人的质疑或问题，洞见将解码深层需求并生成谈判策略。可附带候选人画像以获取更精准建议。
+    </div>
+
+    <div class="card">
+      <label>候选人质疑 <span class="sub">必填 — 候选人说了什么</span></label>
+      <textarea id="negotiate-question" placeholder="候选人说的话，如:
+你们能给到80万吗？DJI那边已经给我这个数了。
+或: 你们公司才20个人，能稳定吗？"></textarea>
+
+      <label style="margin-top:12px;">候选人画像 <span class="sub">可选 — 先前的分析结论或已知信息</span></label>
+      <textarea id="negotiate-profile" placeholder="（可选）候选人画像摘要，如:
+· 成就动机高，安全需求强
+· 大五: 高开放性、中尽责性、低神经质
+· 同时在看竞品DJI的offer" style="min-height:80px;"></textarea>
+
+      <label style="margin-top:12px;">额外背景 <span class="sub">可选</span></label>
+      <input type="text" id="negotiate-context" placeholder="如: 我们预算上限60W，这个岗位很关键">
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runNegotiate()" id="btn-negotiate">生成策略</button>
+        <button class="btn btn-secondary" onclick="clearNegotiate()">清空</button>
+      </div>
+    </div>
+
+    <div class="loader" id="loader-negotiate">
+      <div class="spinner"></div>
+      <div>正在生成谈判策略，请稍候...</div>
+    </div>
+
+    <div class="result" id="result-negotiate"></div>
+
+    <!-- 反馈博弈区（策略生成后显示） -->
+    <div class="feedback-area" id="feedback-negotiate">
+      <label style="font-weight:600;font-size:14px;">🔄 反馈优化 <span class="sub">指出策略的问题，洞见会迭代改进</span></label>
+      <textarea id="negotiate-feedback" placeholder="如：硬策略太强硬会吓跑候选人，软策略的话术太虚没有力度..."></textarea>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="runRefine()" id="btn-refine">提交反馈并优化策略</button>
+        <button class="btn btn-secondary" onclick="newRound()">开启新一轮（重置）</button>
+      </div>
+      <div class="feedback-history" id="feedback-history-negotiate"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── 状态 ──
+let currentTab = 'analyze';
+let negotiateState = { strategy: '', feedbacks: [], round: 0 };
+
+// ── Tab 切换 ──
+function switchTab(tab) {
+  currentTab = tab;
+  document.getElementById('tab-analyze').classList.toggle('active', tab === 'analyze');
+  document.getElementById('tab-negotiate').classList.toggle('active', tab === 'negotiate');
+  document.getElementById('panel-analyze').style.display = tab === 'analyze' ? 'block' : 'none';
+  document.getElementById('panel-negotiate').style.display = tab === 'negotiate' ? 'block' : 'none';
+}
+
+// ── 健康检查 ──
+async function checkHealth() {
+  try {
+    const r = await fetch('/api/health');
+    const d = await r.json();
+    const bar = document.getElementById('status-bar');
+    const kbOk = Object.values(d.knowledge_base).filter(v => v === '✓').length;
+    const kbTotal = Object.keys(d.knowledge_base).length;
+    if (d.has_api_key) {
+      bar.innerHTML = `<span class="dot green"></span> API 已连接 · 模型: ${d.model} · 知识库: ${kbOk}/${kbTotal}`;
+    } else {
+      bar.innerHTML = `<span class="dot yellow"></span> 未配置 API Key · 知识库: ${kbOk}/${kbTotal} · <a href="#setup" style="color:var(--accent)">设置方法</a>`;
+    }
+  } catch(e) {
+    document.getElementById('status-bar').innerHTML = `<span class="dot red"></span> 服务连接失败: ${e.message}`;
+  }
+}
+
+// ── 对话分析 ──
+async function runAnalyze() {
+  const text = document.getElementById('analyze-text').value.trim();
+  if (!text) { alert('请粘贴对话记录'); return; }
+
+  const subject = document.getElementById('analyze-subject').value.trim() || '候选人';
+  const btn = document.getElementById('btn-analyze');
+  const loader = document.getElementById('loader-analyze');
+  const result = document.getElementById('result-analyze');
+
+  btn.disabled = true;
+  loader.classList.add('visible');
+  result.classList.add('visible');
+  result.textContent = '';
+
+  try {
+    const r = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({conversation: text, subject}),
+    });
+    if (!r.ok) {
+      const errText = await r.text();
+      throw new Error(`HTTP ${r.status}: ${errText.substring(0, 200)}`);
+    }
+    await streamResponse(r, result);
+  } catch(e) {
+    result.textContent = '请求失败: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    loader.classList.remove('visible');
+  }
+}
+
+function clearAnalyze() {
+  document.getElementById('analyze-text').value = '';
+  document.getElementById('analyze-subject').value = '';
+  document.getElementById('result-analyze').classList.remove('visible');
+  document.getElementById('result-analyze').textContent = '';
+}
+
+// ── 谈判策略 ──
+async function runNegotiate() {
+  const question = document.getElementById('negotiate-question').value.trim();
+  if (!question) { alert('请输入候选人质疑'); return; }
+
+  const profile = document.getElementById('negotiate-profile').value.trim();
+  const context = document.getElementById('negotiate-context').value.trim();
+  const btn = document.getElementById('btn-negotiate');
+  const loader = document.getElementById('loader-negotiate');
+  const result = document.getElementById('result-negotiate');
+
+  btn.disabled = true;
+  loader.classList.add('visible');
+  result.classList.add('visible');
+  result.textContent = '';
+  document.getElementById('feedback-negotiate').classList.remove('visible');
+
+  try {
+    const r = await fetch('/api/negotiate', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question, profile, context}),
+    });
+    if (!r.ok) {
+      const errText = await r.text();
+      throw new Error(`HTTP ${r.status}: ${errText.substring(0, 200)}`);
+    }
+    await streamResponse(r, result);
+    // 策略生成后显示反馈区
+    negotiateState.strategy = result.textContent;
+    negotiateState.feedbacks = [];
+    negotiateState.round = 0;
+    document.getElementById('negotiate-feedback').value = '';
+    document.getElementById('feedback-history-negotiate').innerHTML = '';
+    document.getElementById('feedback-negotiate').classList.add('visible');
+  } catch(e) {
+    result.textContent = '请求失败: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    loader.classList.remove('visible');
+  }
+}
+
+// ── 真流式响应渲染（逐块显示）──
+async function streamResponse(response, el) {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let totalChars = 0;
+
+  el.textContent = '';
+
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    const chunk = decoder.decode(value, {stream: true});
+    totalChars += chunk.length;
+    el.textContent += chunk;
+    // 自动滚动到底部
+    el.scrollTop = el.scrollHeight;
+  }
+  return totalChars;
+}
+
+function clearNegotiate() {
+  document.getElementById('negotiate-question').value = '';
+  document.getElementById('negotiate-profile').value = '';
+  document.getElementById('negotiate-context').value = '';
+  document.getElementById('result-negotiate').classList.remove('visible');
+  document.getElementById('result-negotiate').textContent = '';
+  document.getElementById('feedback-negotiate').classList.remove('visible');
+  document.getElementById('negotiate-feedback').value = '';
+  document.getElementById('feedback-history-negotiate').innerHTML = '';
+  negotiateState = { strategy: '', feedbacks: [], round: 0 };
+}
+
+// ── 反馈优化（多轮博弈）──
+async function runRefine() {
+  const feedback = document.getElementById('negotiate-feedback').value.trim();
+  if (!feedback) { alert('请输入反馈意见'); return; }
+  if (!negotiateState.strategy) { alert('请先生成策略'); return; }
+
+  const btn = document.getElementById('btn-refine');
+  const loader = document.getElementById('loader-negotiate');
+  const result = document.getElementById('result-negotiate');
+
+  btn.disabled = true;
+  loader.classList.add('visible');
+  result.textContent = '';
+
+  // 保存反馈历史
+  negotiateState.round++;
+  negotiateState.feedbacks.push({ round: negotiateState.round, text: feedback });
+  const historyText = negotiateState.feedbacks
+    .map(f => `[第${f.round}轮] ${f.text}`).join('\n');
+
+  try {
+    const r = await fetch('/api/negotiate/refine', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        strategy: negotiateState.strategy,
+        feedback: feedback,
+        history: historyText,
+      }),
+    });
+    if (!r.ok) {
+      const errText = await r.text();
+      throw new Error(`HTTP ${r.status}: ${errText.substring(0, 200)}`);
+    }
+    await streamResponse(r, result);
+    // 更新当前策略为新结果
+    negotiateState.strategy = result.textContent;
+    document.getElementById('negotiate-feedback').value = '';
+    updateFeedbackHistory();
+  } catch(e) {
+    result.textContent = '请求失败: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    loader.classList.remove('visible');
+  }
+}
+
+function updateFeedbackHistory() {
+  const el = document.getElementById('feedback-history-negotiate');
+  el.innerHTML = negotiateState.feedbacks
+    .map(f => `<div class="round"><strong>第${f.round}轮</strong> ${f.text.substring(0, 100)}${f.text.length > 100 ? '...' : ''}</div>`)
+    .join('') + `<div style="margin-top:4px;color:var(--accent2);">已进行 ${negotiateState.round} 轮博弈优化</div>`;
+}
+
+function newRound() {
+  document.getElementById('result-negotiate').classList.remove('visible');
+  document.getElementById('result-negotiate').textContent = '';
+  document.getElementById('feedback-negotiate').classList.remove('visible');
+  document.getElementById('negotiate-feedback').value = '';
+  document.getElementById('feedback-history-negotiate').innerHTML = '';
+  negotiateState = { strategy: '', feedbacks: [], round: 0 };
+}
+
+// ── 启动 ──
+checkHealth();
+// PWA service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/sw.js');
+}
+</script>
+
+</body>
+</html>

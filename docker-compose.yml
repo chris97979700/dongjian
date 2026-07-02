@@ -1,0 +1,10 @@
+version: "3.8"
+services:
+  dongjian:
+    build: .
+    ports:
+      - "7860:7860"
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_MODEL=deepseek-chat
+    restart: unless-stopped
